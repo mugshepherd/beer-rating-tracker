@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=edge">
+	<title></title>
+
+  <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
+  <link rel="stylesheet" type="text/css" href="css/dc.min.css">
+  <link rel="stylesheet" type="text/css" href="css/leaflet.css">
+  <link rel="stylesheet" type="text/css" href="css/main.css">
+
+	<script type="text/javascript" src="js/bootstrap.min.js"></script>
+	<script type="text/javascript" src="js/crossfilter.min.js"></script>
+	<script type="text/javascript" src="js/d3.min.js"></script>
+	<script type="text/javascript" src="js/dc.min.js"></script>
+	<script type="text/javascript" src="js/leaflet.js"></script>
+	<script type="text/javascript" src="js/underscore-min.js"></script>
+
+</head>
+<body>
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-xs-12 dc-data-count dc-chart" id="data-count">
+      <h2>Beer History
+        <small>
+          <span class="filter-count"></span> selected out of <span class="total-count"></span> records |
+           <a id="all" href="#">Reset All</a>
+          </span>
+        </small>
+      </h1>
+    </div>
+  </div>
+  <div class="row" id="control-row">
+    <div class="col-xs-2 pie-chart">
+      <h4>Year <small><a id="year">reset</a></small></h4>
+      <div class="dc-chart" id="chart-ring-year"></div>
+    </div>
+    <div class="col-xs-2 pie-chart">
+      <h4>Month <small><a id="month" href="#">reset</a></small></h4>
+      <div class="dc-chart" id="chart-ring-month"></div>
+    </div>
+    <div class="col-xs-2 pie-chart">
+      <h4>Day <small><a id="day">reset</a></small></h4>
+      <div id="chart-ring-day" class="dc-chart"></div>
+    </div>
+    <div class="col-xs-6">
+      <h4>Breweries</h4>
+      <div id="map"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-6 col-md-3">
+      <div class="dc-chart" id="chart-rating-count"></div>
+    </div>
+    <div class="col-xs-6 col-md-3">
+      <div class="dc-chart" id="chart-community-rating-count"></div>
+    </div>
+    <div class="col-xs-6 col-md-3">
+      <div class="dc-chart" id="chart-abv-count"></div>
+    </div>
+    <div class="col-xs-6 col-md-3">
+      <div class="dc-chart" id="chart-ibu-count"></div>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xs-12">
+      <table class="table table-bordered table-striped" id="data-table">
+        <thead>
+          <tr class="header">
+            <th>Brewery</th>
+            <th>Beer</th>
+            <th>Style</th>
+            <th>My Rating</th>
+            <th>Community Rating</th>
+            <th>ABV %</th>
+            <th>IBU</th>
+          </tr>
+        </thead>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+	d3.json('data/uptappd.json', function(error, data) {
+		var beerData = data.response.beers.items;
+
+		var fullDateFormat = d3.time.format('%a, %d %b %Y %X %Z');
+		var yearFormat = d3.time.format('%Y');
+		var monthFormat = d3.time.format('%b');
+		var dayOfWeekFormat = d3.time.format('%a');
+
+		//normalize/parse data so dc can coorrectly sort and bin them
+		beerData.forEach(function(d) {
+			d.count = +d.count;
+			//round to nearest 0.25
+			d.rating_score = Math.round(+d.rating_score * 4) / 4;
+			d.beer.rating_score = Math.round(+d.beer.rating_score * 4) / 4;
+			//round to nearest 0.5
+			d.beer.beer_abv = Math.round(+d.beer.beer_abv * 2) / 2;
+			//round to nearest 10
+			d.beer.beer_ibu = Math.floor(+d.beer.beer_ibu / 10) * 10;
+			d.first_had_dt = fullDateFormat.parse(d.first_had);
+			d.first_had_year = +yearFormat(d.first_had_dt);
+			d.first_had_month = monthFormat(d.first_had_dt);
+			d.first_had_day = dayOfWeekFormat(d.first_had_dt);
+		});
+
+		//set crossfilter
+		var ndx = crossfilter(beerData);
+
+		//create dimensions (x-axis values)
+		var yearDim = ndx.dimension(function(d) {return d.first_had_month;}),
+		//dc.pluck:  short hand for same kind of anonymous function we used for yearDim
+		monthDim = ndx.dimension(dc.pluck('first_had_month')),
+		dayOfWeekDim = ndx.dimension(dc.pluck('first_had_day')),
+		ratingDim = ndx.dimension(dc.pluck('rating_score')),
+		commRatingDim = ndx.dimension(function(d) {return d.beer.rating_score;}), 
+		abvDim = ndx.dimension(function(d) {return d.beer.beer_abv;}),
+		ibuDim = ndx.dimension(function(d) {return d.beer.beer_ibu;}),
+		allDim = ndx.dimension(function(d) {return d;});
+
+	})
+
+</script>
+
+	
+</body>
+</html>
