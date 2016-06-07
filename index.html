@@ -114,13 +114,57 @@
 		//create dimensions (x-axis values)
 		var yearDim = ndx.dimension(function(d) {return d.first_had_month;}),
 		//dc.pluck:  short hand for same kind of anonymous function we used for yearDim
-		monthDim = ndx.dimension(dc.pluck('first_had_month')),
-		dayOfWeekDim = ndx.dimension(dc.pluck('first_had_day')),
-		ratingDim = ndx.dimension(dc.pluck('rating_score')),
-		commRatingDim = ndx.dimension(function(d) {return d.beer.rating_score;}), 
-		abvDim = ndx.dimension(function(d) {return d.beer.beer_abv;}),
-		ibuDim = ndx.dimension(function(d) {return d.beer.beer_ibu;}),
-		allDim = ndx.dimension(function(d) {return d;});
+				monthDim = ndx.dimension(dc.pluck('first_had_month')),
+				dayOfWeekDim = ndx.dimension(dc.pluck('first_had_day')),
+				ratingDim = ndx.dimension(dc.pluck('rating_score')),
+				commRatingDim = ndx.dimension(function(d) {return d.beer.rating_score;}), 
+				abvDim = ndx.dimension(function(d) {return d.beer.beer_abv;}),
+				ibuDim = ndx.dimension(function(d) {return d.beer.beer_ibu;}),
+				allDim = ndx.dimension(function(d) {return d;});
+
+		//creating groups (y-axis values)
+		var all = ndx.groupAll();
+		var countPerYear = yearDim.group().reduceCount(),
+				countPerMonth = monthDim.group().reduceCount(),
+				countPerDay = dayOfWeekDim.group().reduceCount(),
+				countPerRating = ratingDim.group().reduceCount(),
+				countPerCommRating = commRatingDim.group().reduceCount(),
+				countPerABV = abvDim.group().reduceCount(),
+				countPerIBU = ibuDim.group().reduceCount();
+
+
+		//creating charts
+		var yearChart = dc.pieChart('#chart-ring-year'),
+				monthChart = dc.pieChart('#chart-ring-month'),
+				dayChart = dc.pieChart('#chart-ring-day'),
+				ratingCountChart = dc.barChart('#chart-rating-count'),
+				commRatingCountChart = dc.barChart('#chart-community-rating-count'),
+				abvCountChart = dc.barChart('#chart-abv-count'),
+				ibuCountChart = dc.barChart('#chart-ibu-count'),
+				dataCount = dc.dataCount('#data-count'),
+				dataTable = dc.dataTable('#data-table');
+
+		//chart configuration
+
+		yearChart
+			.width(150)
+			.height(150)
+			.dimension(yearDim)
+			.group(countPerYear)
+			.innerRadius(20);
+
+		monthChart
+			.width(150)
+			.height(150)
+			.dimension(monthDim)
+			.group(countPerMonth)
+			.innerRadius(20)
+			.ordering(function(d){
+				var order = {
+					'Jan':1,'Feb':2,'Mar':3,'Apr':4,'May':5,'Jun':6,'Jul':7,'Aug':8,'Sep':9,'Oct':10,'Nov':11,'Dec':12
+				};
+				return order[d.key];
+			});
 
 	})
 
