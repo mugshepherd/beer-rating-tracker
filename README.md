@@ -1,5 +1,7 @@
 # Beer he's been drinking
-Tutorial at https://github.com/austinlyons/dcjs-leaflet-untappd, using d3, dc, and crossfilter (not to mention leaflet) javascript libraries to map differences between beers the tutorial author has tasted across the world.  One of the better tutorials I've done, and certainly more entertaining than most.    
+Tutorial at https://github.com/austinlyons/dcjs-leaflet-untappd, using d3, dc, and crossfilter (not to mention leaflet) javascript libraries to map differences between beers the tutorial author has tasted across the world.  One of the better tutorials I've done, and certainly more entertaining than most.   
+
+Working code up on bl.ocks:   
 
 ###No CDNs?    
 
