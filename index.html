@@ -4,19 +4,10 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title></title>
-
-  <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
-  <link rel="stylesheet" type="text/css" href="css/dc.min.css">
+  <link rel="stylesheet" type="text/css" href="css/dc.css">
   <link rel="stylesheet" type="text/css" href="css/leaflet.css">
+  <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
   <link rel="stylesheet" type="text/css" href="css/main.css">
-
-	<script type="text/javascript" src="js/bootstrap.min.js"></script>
-	<script type="text/javascript" src="js/crossfilter.min.js"></script>
-	<script type="text/javascript" src="js/d3.min.js"></script>
-	<script type="text/javascript" src="js/dc.min.js"></script>
-	<script type="text/javascript" src="js/leaflet.js"></script>
-	<script type="text/javascript" src="js/underscore-min.js"></script>
-
 </head>
 <body>
 
@@ -83,8 +74,25 @@
   </div>
 </div>
 
+	<script type="text/javascript" src="js/d3.js"></script>
+	<script type="text/javascript" src="js/crossfilter.js"></script>
+	<script type="text/javascript" src="js/dc.js"></script>
+	<script type="text/javascript" src="js/leaflet.js"></script>
+	<script type="text/javascript" src="js/underscore.js"></script>
+	<!-- <script type="text/javascript" src="js/bootstrap.min.js"></script> -->
+
 <script>
-	d3.json('data/uptappd.json', function(error, data) {
+
+	var map = L.map('map');
+	var breweryMarkers = new L.FeatureGroup();
+
+	L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+		maxZoom: 19,
+		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+		}).addTo(map);
+
+
+	d3.json('data/untappd.json', function(error, data) {
 		var beerData = data.response.beers.items;
 
 		var fullDateFormat = d3.time.format('%a, %d %b %Y %X %Z');
@@ -112,12 +120,12 @@
 		var ndx = crossfilter(beerData);
 
 		//create dimensions (x-axis values)
-		var yearDim = ndx.dimension(function(d) {return d.first_had_month;}),
+		var yearDim = ndx.dimension(function(d) {return d.first_had_year;}),
 		//dc.pluck:  short hand for same kind of anonymous function we used for yearDim
 				monthDim = ndx.dimension(dc.pluck('first_had_month')),
 				dayOfWeekDim = ndx.dimension(dc.pluck('first_had_day')),
 				ratingDim = ndx.dimension(dc.pluck('rating_score')),
-				commRatingDim = ndx.dimension(function(d) {return d.beer.rating_score;}), 
+				commRatingDim = ndx.dimension(function(d) {return d.beer.rating_score;}),
 				abvDim = ndx.dimension(function(d) {return d.beer.beer_abv;}),
 				ibuDim = ndx.dimension(function(d) {return d.beer.beer_ibu;}),
 				allDim = ndx.dimension(function(d) {return d;});
@@ -132,7 +140,6 @@
 				countPerABV = abvDim.group().reduceCount(),
 				countPerIBU = ibuDim.group().reduceCount();
 
-
 		//creating charts
 		var yearChart = dc.pieChart('#chart-ring-year'),
 				monthChart = dc.pieChart('#chart-ring-month'),
@@ -144,8 +151,9 @@
 				dataCount = dc.dataCount('#data-count'),
 				dataTable = dc.dataTable('#data-table');
 
-		//chart configuration
+		////chart configuration
 
+		//circle charts
 		yearChart
 			.width(150)
 			.height(150)
@@ -166,7 +174,135 @@
 				return order[d.key];
 			});
 
-	})
+		dayChart
+			.width(150)
+			.height(150)
+			.dimension(dayOfWeekDim)
+			.group(countPerDay)
+			.innerRadius(20)
+			.ordering(function(d) {
+				var order = {
+					'Mon':0,'Tue':1,'Wed':2,'Thu':3,'Fri':4,'Sat':5,'Sun':6
+				}
+				return order[d.key];
+			});
+
+		//bar charts
+		ratingCountChart
+			.width(300)
+			.height(180)
+			.dimension(ratingDim)
+			.group(countPerRating)
+			.x(d3.scale.linear().domain([0,5.2]))
+			.elasticY(true)
+			.centerBar(true)
+			.barPadding(5)
+			.xAxisLabel('My rating')
+			.yAxisLabel('Count')
+			.margins({top: 10, right: 20, bottom: 50, left: 50});
+		ratingCountChart.xAxis().tickValues([0,1,2,3,4,5]);
+
+		commRatingCountChart
+			.width(300)
+			.height(180)
+			.dimension(commRatingDim)
+			.group(countPerCommRating)
+			.x(d3.scale.linear().domain([0,5.2]))
+			.elasticY(true)
+			.centerBar(true)
+			.barPadding(5)
+			.xAxisLabel('Community rating')
+			.yAxisLabel('Count')
+			.margins({top:10, right: 20, bottom: 50, left: 50});
+			commRatingCountChart.xAxis().tickValues([0,1,2,3,4,5]);
+
+		abvCountChart
+			.width(300)
+			.height(180)
+			.dimension(abvDim)
+			.group(countPerABV)
+			.x(d3.scale.linear().domain([-9.2, d3.max(beerData, function(d) {return d.beer.beer_abv; }) + 0.2]))
+			.elasticY(true)
+			.centerBar(true)
+			.barPadding(2)
+			.xAxisLabel('Alcohol By Volume (%)')
+			.yAxisLabel('Count')
+			.margins({top:10, right:20, bottom:50, left:50});
+
+		ibuCountChart
+			.width(300)
+			.height(180)
+			.dimension(ibuDim)
+			.group(countPerIBU)
+			.x(d3.scale.linear().domain([-2, d3.max(beerData, function(d){return d.beer.beer_ibu; }) +2]))
+			.elasticY(true)
+			.centerBar(true)
+			.barPadding(5)
+			.xAxisLabel('International Bitterness Units')
+			.yAxisLabel('Count')
+			.xUnits(function(d){ return 5;})
+			.margins({top:10, right:20, bottom:50, left:50});
+
+		dataCount
+			.dimension(ndx)
+			.group(all);
+
+		//data table
+		dataTable
+			.dimension(allDim)
+			.group(function (d) { return 'dc.js insists on putting a row here so I remove it using js'; })
+			.size(100)
+			.columns([
+				function (d) { return d.brewery.brewery_name; },
+				function (d) { return d.beer.beer_name; },
+				function (d) { return d.beer.beer_style; },
+				function (d) { return d.rating_score; },
+				function (d) { return d.beer.rating_score; },
+				function (d) { return d.beer.beer_abv; },
+				function (d) { return d.beer.beer_ibu; },
+			])
+			.sortBy(function (d) { return d.rating_score; })
+			.order(d3.descending)
+			.on('renderlet', function (table) {
+				//each time table is rendered remove extra row dc.js insists on adding
+				table.select('tr.dc-table-group').remove();
+
+	      breweryMarkers.clearLayers();
+	      _.each(allDim.top(Infinity), function (d) {
+	        var loc = d.brewery.location;
+	        var name = d.brewery.brewery_name;
+	        var marker = L.marker([loc.lat, loc.lng]);
+	        marker.bindPopup("<p>" + name + " " + loc.brewery_city + " " + loc.brewery_state + "</p>");
+	        breweryMarkers.addLayer(marker);
+	      });
+	      map.addLayer(breweryMarkers);
+	      map.fitBounds(breweryMarkers.getBounds());
+	    });
+
+
+		d3.selectAll('a#all').on('click', function() {
+			dc.filterAll();
+			dc.renderAll();
+		});
+
+		d3.selectAll('a#year').on('click', function() {
+			yearChart.filterAll();
+			dc.redrawAll();
+		});
+
+		d3.selectAll('a#month').on('click', function() {
+			monthChart.filterAll();
+			dc.redrawAll();
+		});
+
+		d3.selectAll('a#day').on('click', function() {
+			dayChart.filterAll();
+			dc.redrawAll();
+		});
+
+		dc.renderAll();
+
+	});
 
 </script>
 
